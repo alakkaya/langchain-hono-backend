@@ -9,16 +9,27 @@ import {PromptTemplate} from "@langchain/core/prompts";
 import { createStuffDocumentsChain } from 'langchain/chains/combine_documents';
 import { Ollama } from '@langchain/community/llms/ollama';
 import { createRetrievalChain } from 'langchain/chains/retrieval';
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 
 const app = new Hono()
-
+//kullanıcının kendi pdf'ini yükleyebildiği bir react yazılabilir.
+//
 const ollama = new Ollama({
   baseUrl: "http://localhost:11434", // Default value
   model: "gemma2:2b", // Default value
 });
 
-// Metin dosyasını okuma fonksiyonu
+const embeddings = new OllamaEmbeddings({
+  model: "gemma2:2b", 
+  baseUrl: "http://localhost:11434", //default is "http://localhost:11434"
+  requestOptions: {
+    useMMap: true, // use_mmap 1
+    numThread: 6, // num_thread 6
+    numGpu: 1, // num_gpu 1
+  },
+});
 
+// Metin dosyasını okuma fonksiyonu
 const getTextFile = async () => {
   //const filePath = path.join(__dirname, '../data/langchain-test.txt')
   const filePath = path.join(__dirname, '../data/wsj.txt')
@@ -26,6 +37,16 @@ const getTextFile = async () => {
   const data = await fs.readFile(filePath, 'utf-8')
   
   return data
+}
+
+// Pdf dosyasını okuma fonksiyonu
+const loadPdfFile = async () => {
+
+  const filePath = path.join(__dirname, '../data/burak-pdf.pdf')
+  
+  const loader = new PDFLoader(filePath);
+  
+  return await loader.load();
 }
 
 app.get('/', (c) => {
@@ -46,21 +67,22 @@ const splitter = new RecursiveCharacterTextSplitter({
 });
   const output = await splitter.createDocuments([text]);
 
-  const embeddings = new OllamaEmbeddings({
-    model: "gemma2:2b", 
-    baseUrl: "http://localhost:11434", //default is "http://localhost:11434"
-    requestOptions: {
-      useMMap: true, // use_mmap 1
-      numThread: 6, // num_thread 6
-      numGpu: 1, // num_gpu 1
-    },
-  });
-
   //ilerki aşamada bunu sqLite'a, MongoDb'ye  kaydedebiliriz.
   vectorStore = await MemoryVectorStore.fromDocuments( output,embeddings);
   
   return c.json({message: 'Text embeddings loaded successfully'})
 })
+
+//readin pdf file and creating embeddings
+app.get('/loadPdfEmbeddings',async (c) => {
+  const documents = await loadPdfFile();
+  
+
+    //ilerki aşamada bunu sqLite'a, MongoDb'ye  kaydedebiliriz.
+    vectorStore = await MemoryVectorStore.fromDocuments( documents,embeddings);
+    
+    return c.json({message: 'Pdf embeddings loaded successfully'})
+  })
 
 // to ask a question, firstly we should load the text embeddings
 app.post('/ask', async(c) => {
@@ -99,10 +121,6 @@ app.post('/ask', async(c) => {
       return c.json({answer:response.answer})
     });    
 
-
-    /* 
-      
-    */
 const port = 3003
 console.log(`Server is running on port ${port}`)
 
