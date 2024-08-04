@@ -17,8 +17,11 @@ const ollama = new Ollama({
   model: "gemma2:2b", // Default value
 });
 
+// Metin dosyasını okuma fonksiyonu
+
 const getTextFile = async () => {
-  const filePath = path.join(__dirname, '../data/langchain-test.txt')
+  //const filePath = path.join(__dirname, '../data/langchain-test.txt')
+  const filePath = path.join(__dirname, '../data/wsj.txt')
   
   const data = await fs.readFile(filePath, 'utf-8')
   
@@ -59,6 +62,7 @@ const splitter = new RecursiveCharacterTextSplitter({
   return c.json({message: 'Text embeddings loaded successfully'})
 })
 
+// to ask a question, firstly we should load the text embeddings
 app.post('/ask', async(c) => {
   const { question } = await c.req.json()
 
@@ -99,7 +103,7 @@ app.post('/ask', async(c) => {
     /* 
       
     */
-const port = 3002
+const port = 3003
 console.log(`Server is running on port ${port}`)
 
 serve({
