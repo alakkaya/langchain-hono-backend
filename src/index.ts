@@ -8,6 +8,7 @@ import { OllamaEmbeddings } from "@langchain/community/embeddings/ollama";
 import {PromptTemplate} from "@langchain/core/prompts";
 import { createStuffDocumentsChain } from 'langchain/chains/combine_documents';
 import { Ollama } from '@langchain/community/llms/ollama';
+import { createRetrievalChain } from 'langchain/chains/retrieval';
 
 const app = new Hono()
 
@@ -74,15 +75,30 @@ app.post('/ask', async(c) => {
     Answer: 
       `)
     
+      const documentChain = await createStuffDocumentsChain({
+        llm: ollama,
+        prompt
+       });
+
+       const retrievelChain= await createRetrievalChain({
+        combineDocsChain: documentChain,
+        retriever: vectorStore.asRetriever({
+          k: 3,
+        }),
+      });
+
+      const response = await retrievelChain.invoke({
+        question,
+        input:""
+      });
+
+      return c.json({answer:response.answer})
+    });    
 
 
-    });
-
-
-    const documentChain = await createStuffDocumentsChain({
-     
-    });
-
+    /* 
+      
+    */
 const port = 3002
 console.log(`Server is running on port ${port}`)
 
