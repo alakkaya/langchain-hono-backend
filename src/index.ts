@@ -7,6 +7,10 @@ const app = new Hono()
 
 const getTextFile = async () => {
   const filePath = path.join(__dirname, '../data/langchain-test.txt')
+  
+  const data = await fs.readFile(filePath, 'utf-8')
+  
+  return data
 }
 
 app.get('/', (c) => {
